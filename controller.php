@@ -1,17 +1,21 @@
 <?php
+# FIXME: whack-log, logging, serve log(s)
+# FIXME: set ?ct=n for each play, on 10, hangup
 
 # Supply the following url to twilio as the "start" url
 # http://build-a-tech.org/anna/controller.php/start
+
 $base_url = 'http://build-a-tech.org/anna/controller.php';
 
-# path:  /controller.php/$box # return some twiml for this box
 # path:  /controller.php/$box?keys=nn # return some twiml for that next box
 # path:  /controller.php/$box/something.wav # serve sound
 # path:  /controller.php/$box/timeout # nothing happened, timeout
+# path:  /controller.php/$box # return some twiml for this box
 
 # A Box is a directory
 # Short descriptive name is best
 # The start box is 'start'
+# The 'oops' box should play a sound
 
 # Sound Box with branching
 # something.wav # we will send a twiml for playing it, and serve it
@@ -20,7 +24,7 @@ $base_url = 'http://build-a-tech.org/anna/controller.php';
 # 2 boxname2
 # ...
 # Will use 'keys' to "go to" the nextbox
-# Add a "hangup.txt" file if it should hangup after
+# FIXME: If no branch.txt, will hangup after
 
 # TWI.ML Box
 # twi.ml # a twillio ml we will send
@@ -46,12 +50,19 @@ function play_sound($box, $wav_file) {
 }
 
 function play_oops($msg) {
+    # when we have some error
     echo "<!-- $msg >\n";
     play_sound( 'oops', 'oops/oops.wav' );
     }
 
 function twi_ml_for_box($box) {
+    # no keys=n, so we return something...
+
     $twi_file = $box . "/twi.ml";
+    $wav_file = $box . "/*.wav";
+    $wav_files = glob( $wav_file );
+
+    # path /controller.php/$box # return the twi.ml if there is one
     if ( file_exists( $twi_file ) ) {
         echo readfile( $twi_file );
         }
@@ -75,8 +86,6 @@ function twi_ml_for_box($box) {
 $box = ltrim($_SERVER['PATH_INFO'], '/' );
 echo "<!-- box: ",$box," >\n";
 
-$wav_file = $box . "/*.wav";
-$wav_files = glob( $wav_file );
 
 # path:  /controller.php/$box?keys=nn # return branch twiml for that next box
 if ( $_GET['keys'] ) {
@@ -110,6 +119,7 @@ if ( $_GET['keys'] ) {
     }
 
 # path /controller.php/$box # return the twi.ml if there is one
+# path:  /controller.php/$box/something.wav # serve sound
 elseif( twi_ml_for_box($box) ) {
     # did it, or failed
     }
