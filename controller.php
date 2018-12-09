@@ -26,16 +26,28 @@ $base_url = 'http://build-a-tech.org/anna/controller.php';
 # Will use 'keys' to "go to" the nextbox
 # FIXME: If no branch.txt, will hangup after
 
+$my_log = fopen("controller_log", "a");
+
+function logit($msg) {
+    global $my_log;
+    if ($my_log) {
+        fwrite($my_log, "" . Date('c') . " " );
+        fwrite($my_log, $msg );
+        fwrite($my_log, "\n" );
+        }
+    }
+
 # TWI.ML Box
 # twi.ml # a twillio ml we will send
 
+
 # debug as comment
-echo "<!-- path: ",$_SERVER['PATH_INFO']," >\n";
+logit( "REQUEST_URI ".$_SERVER['REQUEST_URI'] );
+logit( "PATH_INFO " . $_SERVER['PATH_INFO'] );
 
 # We seem to be able to use $_SERVER['PATH_INFO'] 
 # which is the portion after our cgi script name => '/start'
 
-# log $_SERVER['REQUEST_URI']
 
 function play_sound($box, $wav_file) {
     # twi.ml for play sound
@@ -51,12 +63,16 @@ function play_sound($box, $wav_file) {
 
 function play_oops($msg) {
     # when we have some error
-    echo "<!-- $msg >\n";
+    echo "<!-- $msg -->\n";
     play_sound( 'oops', 'oops/oops.wav' );
     }
 
 function twi_ml_for_box($box) {
     # no keys=n, so we return something...
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>';
+    echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">';
+    echo "<!-- path: ".$_SERVER['PATH_INFO']." -->\n";
 
     $twi_file = $box . "/twi.ml";
     $wav_file = $box . "/*.wav";
@@ -84,33 +100,32 @@ function twi_ml_for_box($box) {
     }
 
 $box = ltrim($_SERVER['PATH_INFO'], '/' );
-echo "<!-- box: ",$box," >\n";
-
+logit("box: ".$box);
 
 # path:  /controller.php/$box?keys=nn # return branch twiml for that next box
 if ( $_GET['keys'] ) {
-    # log echo "KEYS ".$_GET['keys'],"\n";
+    logit("KEYS ".$_GET['keys']);
     $keys = $_GET['keys'];
 
     $branch_txt = $box . "/branch.txt";
     if (file_exists( $branch_txt )) {
-        echo "<!-- Test key=$keys in '/$branch_txt' ... -->\n";
+        logit("Test key=$keys in '/$branch_txt'");
         foreach(file($branch_txt) as $key_box) {
             # a branch.txt file has lines:
             # nn boxname
             # We skip anything that doesn't start with digits, so comment away!
             if ( preg_match('/^([0-9]+)\s(.+)/', $key_box, $parts) ) {
                 # found it?
-                echo "<!-- br: ".$parts[1]." -> ".$parts[2]." -->\n";
+                logit("br: ".$parts[1]." -> ".$parts[2]);
                 if ($parts[1] == $keys) {
-                    echo "<!-- br!! ".$parts[1]." -> ".$parts[2]." -->\n";
+                    logit("br!! ".$parts[1]." -> ".$parts[2]);
                     twi_ml_for_box( $parts[2] );
                     exit; # done
                     }
                 }
             }
         # didn't match a key, do this box again
-        echo "<!-- key=$keys didn't match in '$branch_txt', so again! -->";
+        logit("key=$keys didn't match in '$branch_txt', so again!");
         twi_ml_for_box($box);
         }
     else {
